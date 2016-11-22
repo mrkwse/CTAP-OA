@@ -202,11 +202,11 @@ def LSFR(length, tap, initial, iterations, least_significant_n):
         it += 1
 
     # print perms
-    return (sequence, popped)
+    return [sequence, popped]
 
 # registers contains each register as an array within an array,
 # of structure [[]{int register bit-length}, [{tap bits}][], [..., [...]], ...]
-def compare(stream_in, stream_len, registers, states, reg_to_check):
+def compare_one(stream_in, stream_len, registers, states, reg_to_check):
 
     # try len(states) == len(registers)
     # initialise a list of length equal to number of registers
@@ -258,6 +258,42 @@ def compare(stream_in, stream_len, registers, states, reg_to_check):
                     match_count = match_count + 1
 
                 bit_index = bit_index + 1
+
+    # print match_count
+    return match_count
+
+# registers contains each register as an array within an array,
+# of structure [[]{int register bit-length}, [{tap bits}][], [..., [...]], ...]
+def compare_all(stream_in, check_len, registers, states):
+
+    # try len(states) == len(registers)
+    # initialise a list of length equal to number of registers
+    # states = [None] * len(registers)
+
+    # set each state x1..xn to starting sequence and None popped
+    init_state_step = 0
+
+
+
+    bit_index = 0
+    stream_string = "{0:b}".format(stream_in).zfill(check_len)
+    match_count = 0
+
+
+    while bit_index < check_len:
+        LSFR_index = 0
+        X = 0
+        while LSFR_index < len(states):
+            states[LSFR_index] = LSFR(registers[LSFR_index][0],
+                                      registers[LSFR_index][1],
+                                      states[LSFR_index][0],
+                                      1, True)
+            X = X + (states[LSFR_index][1] << len(states) - (1 + LSFR_index))
+            LSFR_index = LSFR_index + 1
+
+        if combined[X] == int(stream_string[bit_index]):
+            match_count = match_count + 1
+        bit_index = bit_index + 1
 
     # print match_count
     return match_count
@@ -330,38 +366,146 @@ def verify(registers, initial, expected_streams, stream_length, combine_fn):
 
 
 def attack(stream, tapin, combining, correlation, reg_comb):
+    brute = True
 
     register_count = int(math.log(len(combining), 2))
     vulnerable = correlation
 
-    found_keys = [0] * register_count
+    found_keys = [None] * register_count
 
     checked = []
 
     ii = 0
+
+    # Iterate through each correlation probability, finding exploitable register
     while ii < register_count:
+        # Check for exploitable register
         if correlation[ii] != 0.5:
-            break
+            # Ignores array of combined correlations
+            if ii < register_count:
+                reg_to_check = [ii]
+                jj = 0
+                states = [None] * int(register_count)
+                # Compare matches for sequence of starting values
+                while jj < 10000:
+                    states[ii] = [jj, None]
+                    match_count = compare_one(stream, default_stream_len, tapin, states, reg_to_check)
+
+                    # If returned number of matches appropriate to correlation
+                    # probability, print current starting value as key for
+                    # that register
+                    if ((0.8 * correlation[ii]) * default_stream_len) < match_count \
+                       < ((1.2 * correlation[ii]) * default_stream_len):
+                        print "LSFR" + str(ii + 1) + ", init val: " + str(jj) \
+                               + " returned " + str(match_count) + " matches"
+                        break
+                    jj = jj + 1
+
+                # Note key in array
+                found_keys[ii] = jj
+
+                # Note that LSFR(ii+1) key has been found, so that checks with
+                # multiple registers fix value of that register
+                checked.append(ii)
+            else:
+                break
+            ii = ii + 1
         else:
             ii = ii + 1
 
+    print checked
 
-    if ii < register_count:
-        reg_to_check = [ii]
-        jj = 0
-        states = [None] * int(register_count)
-        while jj < 10000:
-            states[ii] = (jj, None)
-            match_count = compare(stream, default_stream_len, tapin, states, reg_to_check)
-            if ((0.8 * correlation[ii]) * default_stream_len) < match_count \
-               < ((1.2 * correlation[ii]) * default_stream_len):
-                print "LSFR" + str(ii + 1) + ", init val: " + str(jj) \
-                       + " returned " + str(match_count) + " matches"
-                break
-            jj = jj + 1
+    if brute:
+        ii = 0
+        to_break = []
+        states = []
+        while ii < register_count:
+            if found_keys[ii] != None:
+                states.append([found_keys[ii], None])
+                print states
+            else:
+                to_break.append(ii)
+                states.append([0, None])
+            ii = ii + 1
 
-        found_keys[ii] = jj
-        checked.append(ii)
+        max_key = 4000
+        found = False
+        check_len = 25
+        print states
+        while found != True:
+            # print states
+            match_count = compare_all(stream, check_len, tapin, states[:])
+            # print match_count
+            if match_count < check_len:
+                check_len = 25
+                if states[to_break[0]][0] < max_key:
+                    states[to_break[0]][0] = states[to_break[0]][0] + 1
+                    # print "inc [0]"
+                else:
+                    states[to_break[0]][0] = 0
+                    if states[to_break[1]][0] < max_key:
+                        print "inc [1]"
+                        states[to_break[1]][0] = states[to_break[1]][0] + 1
+                    else:
+                        print "Unfindable"
+                        break
+            else:
+                if check_len == default_stream_len:
+                    found = True
+                    print "Found!"
+                else:
+                    check_len = max((check_len * 2), default_stream_len)
+                    print "Promising…"
+                    print states
+
+
+    else:
+        # If not all keys found, attack register combinations
+        if len(checked) != register_count:
+
+            # Confirm working with array of combined correlations
+            if ii == register_count:
+                exploitable_combs = []
+                for fields in range(0, len(correlation[ii])):
+                    exploitable_combs.append([])
+                jj = 0
+
+                # Iterate through each combination
+                while jj < len(correlation[ii]):
+
+                    kk = 0
+
+                    # Iterate through each probability to check which are exploitable
+                    # (if any)
+                    while kk < len(correlation[ii][jj]):
+                        if correlation[ii][jj][kk] != 0.5:
+                            exploitable_combs[jj].append(kk)
+                        kk = kk + 1
+
+                    jj = jj + 1
+
+                jj = 0
+
+                i
+                while jj < len(exploitable_combs):
+                    if exploitable_combs[jj] == []:
+                        break
+                    else:
+                        kk = 0
+
+                        while kk < len(exploitable_combs[jj]):
+                            if checked.count(exploitable_combs[jj][kk]) > 0:
+                                break
+                            else:
+                                break
+
+
+
+                    jj = jj + 1
+
+
+        print exploitable_combs
+
 
 
 
