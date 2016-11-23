@@ -1,0 +1,21 @@
+Test data for LFSR  and overall stream cipher
+In all cases the leftmost bit in a string is the first bit produced in the relevant stream
+
+Register 0  with starting state 44   gives initial stream values of
+0011010010111011100110010 <<
+  110100101110111001100
+Register 1  with starting state 555   gives initial stream values of
+1101010001010000101000100 <<
+11010100010100001010001
+Register 2  with starting state 616   gives initial stream values of
+0001011001000101010110111 <<
+   10110010001010101101
+The overall algorithm, with the same initial register states gives initial stream values of
+0000101101010100110001101 <<
+    1011010101001100011
+Challenge Vector
+With initial register states of 97, 975, and 6420
+give the initial 25 bits produced by your stream cipher.
+
+
+110100101110111001100

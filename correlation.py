@@ -387,7 +387,7 @@ def attack(stream, tapin, combining, correlation, reg_comb):
                 jj = 0
                 states = [None] * int(register_count)
                 # Compare matches for sequence of starting values
-                while jj < 10000:
+                while jj < (2 ** tapin[ii][0]):
                     states[ii] = [jj, None]
                     match_count = compare_one(stream, default_stream_len, tapin, states, reg_to_check)
 
@@ -428,24 +428,30 @@ def attack(stream, tapin, combining, correlation, reg_comb):
                 states.append([0, None])
             ii = ii + 1
 
-        max_key = 4000
+        max_key = [2 ** 12, 2 ** 14]
         found = False
         check_len = 25
+        max_count = 0
         print states
         while found != True:
             # print states
             match_count = compare_all(stream, check_len, tapin, states[:])
             # print match_count
+            max_count = max(match_count, max_count)
             if match_count < check_len:
                 check_len = 25
-                if states[to_break[0]][0] < max_key:
+                if states[to_break[0]][0] < max_key[0]:
                     states[to_break[0]][0] = states[to_break[0]][0] + 1
                     # print "inc [0]"
                 else:
                     states[to_break[0]][0] = 0
-                    if states[to_break[1]][0] < max_key:
-                        print "inc [1]"
+                    if states[to_break[1]][0] < max_key[1]:
+                        # print "inc [1]"
                         states[to_break[1]][0] = states[to_break[1]][0] + 1
+                        # print max_count
+                        # print states
+                        # break
+                        max_count = 0
                     else:
                         print "Unfindable"
                         break
@@ -453,6 +459,7 @@ def attack(stream, tapin, combining, correlation, reg_comb):
                 if check_len == default_stream_len:
                     found = True
                     print "Found!"
+                    print states
                 else:
                     check_len = max((check_len * 2), default_stream_len)
                     print "Promising…"

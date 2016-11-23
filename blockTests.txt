@@ -1,0 +1,43 @@
+****** SUBSTITUTION TESTS FOLLOW ********
+Before substitution: 291  0000000100100011
+After substitution: 16579  0100000011000011
+
+Before substitution: 17767  0100010101100111
+After substitution: 35753  1000101110101001
+
+Before substitution: 33623  1000001101010111
+After substitution: 54201  1101001110111001
+
+Before substitution: 30001  0111010100110001
+After substitution: 39728  1001101100110000
+
+Before substitution: 23130  0101101001011010
+After substitution: 45746  1011001010110010
+
+****** PERMUTATION TESTS FOLLOW ********
+Before permutation: 61440  1111000000000000
+After permutation:  34952  1000100010001000
+
+Before permutation: 3840  0000111100000000
+After permutation:  17476  0100010001000100
+
+Before permutation: 240  0000000011110000
+After permutation:  8738  0010001000100010
+
+Before permutation: 15  0000000000001111
+After permutation:  4369  0001000100010001
+
+Before permutation: 23130  0101101001011010
+After permutation:  23130  0101101001011010
+
+*********   FOUR ROUND TEST VECTORS    **************
+With the following  subkeys for the four round cipher: 
+4132,  8165,  14287,  54321, and  53124
+  
+plaintext 12033  produces ciphertext 20025
+plaintext 62153  produces ciphertext 7495
+
+*********   FOUR ROUND CHALLENGE VECTOR    **************
+With the same five subkeys given above (i.e. 4132,  8165,  14287,  54321,  53124) for 
+the four round cipher encrypt the following plaintext 13571  and record the resulting ciphertext 
+in your assessment, clearly identified. 

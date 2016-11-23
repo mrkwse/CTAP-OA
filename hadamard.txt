@@ -1,0 +1,59 @@
+f is (in standard 0/1 form) :
+1  1  0  1  0  0  1  0
+
+f_hat (polar form) is :
+-1  -1  1  -1  1  1  -1  1
+
+We display all vectors is row form for simplicity.
+All inner (i.e. DOT) products and decompositions implicitly act on/refer to the column forms.
+
+L_0_hat is
+1  1  1  1  1  1  1  1
+Walsh Hadamard F(0)=[ f_hat DOT L_0_hat ] = 0
+
+L_1_hat is
+1  -1  1  -1  1  -1  1  -1
+Walsh Hadamard F(1)=[ f_hat DOT L_1_hat ] = 0
+
+L_2_hat is
+1  1  -1  -1  1  1  -1  -1
+Walsh Hadamard F(2)=[ f_hat DOT L_2_hat ] = 0
+
+L_3_hat is
+1  -1  -1  1  1  -1  -1  1
+Walsh Hadamard F(3)=[ f_hat DOT L_3_hat ] = 0
+
+L_4_hat is
+1  1  1  1  -1  -1  -1  -1
+Walsh Hadamard F(4)=[ f_hat DOT L_4_hat ] = -4
+
+L_5_hat is
+1  -1  1  -1  -1  1  -1  1
+Walsh Hadamard F(5)=[ f_hat DOT L_5_hat ] = 4
+
+L_6_hat is
+1  1  -1  -1  -1  -1  1  1
+Walsh Hadamard F(6)=[ f_hat DOT L_6_hat ] = -4
+
+L_7_hat is
+1  -1  -1  1  -1  1  1  -1
+Walsh Hadamard F(7)=[ f_hat DOT L_7_hat ] = -4
+
+Non-linearity is 1/2(2^n - max_{w}|F(w)|)
+
+Maximum absolute value |F(w)| over all w  is: 4
+
+Non-linearity is 1/2(8 - 4) =  2
+
+f_hat can be decomposed as the sum of the projections onto the L_w_hat
+We need to divide the L_w_hat by 2^{n/2} to get unit vectors.
+
+f_hat is thus SIGMA_{w} [f_hat DOT L_w_hat/(2^{n/2})] L_w_hat/(2^{n/2})
+
+f_hat is thus SIGMA_{w} [F(w)/(2^{n})] L_w_hat     where F(w) are the Walsh Hadamard values
+
+f_hat = 0.0 L_0_hat + 0.0 L_1_hat + 0.0 L_2_hat + 0.0 L_3_hat + -0.5 L_4_hat + 0.5 L_5_hat + -0.5 L_6_hat + -0.5 L_7_hat
+
+Checking Parseval's Equation holds:
+SIGMA_{w} F(w)^{2} = 2^{2n} = 2^{n} * 2^{n}
+(0)^{2} + (0)^{2} + (0)^{2} + (0)^{2} + (-4)^{2} + (4)^{2} + (-4)^{2} + (-4)^{2} = 64 = 8 * 8
