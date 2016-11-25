@@ -7,14 +7,17 @@ import random
 
 # Combining Function corresponds denary index correlates to binary
 # of {x1}{x2}{x3}.
-# combined = [0,1,0,1,0,0,1,1]
 combined = [1,1,0,1,0,0,1,0]
 
+# The manually found correlation between subsets of X={x1x2x3}
 x1x2 = [1,-1,0,-1]
 x1x3 = [-1,1,-1,0]
 
+# Default length of stream
 default_stream_len = 2000
 
+# run with ‘python correlation.py stream.txt’
+# Or replace stream.txt with another stream to attempt to break
 def main(argv=None):
 
     if argv == None:
@@ -24,50 +27,42 @@ def main(argv=None):
         with open(argv[1], 'r') as textStream:
             stream_string_in = textStream.read()
             keystream = int(stream_string_in.replace(" ",""), 2)
-            # print '{0:b}'.format(keystream)
-            # print keystream
-            # print combined
-    # stream = open (argv[1], 'r')
-    # keystram = int(stream.read(), 2)
+
     except Exception as e:
         raise
 
+
     combine_function_out = [1,1,0,1,0,0,1,0]
+
+    # The tap sequences for each register, along with the size of register
     tapin = [[7,[6,7]],[11,[9,11]],[13,[8,11,12,13]]]
 
-    # if argv[2] == '-v':
-
-    # compare(keystream, 2000, [[7, [1,7]], [11, [1,10]], [13, [1,10,11,13]]])
+    # Verify passes in the tap sequnce, followed by an array of the initial
+    # values to check for each regsiter, then an array of the expected values
+    # for each register (as well as the expecte combined value), the length
+    # of the stream to check, and finally the combine function.
     verify(tapin,[44,555,616],
            [0b0011010010111011100110010, 0b1101010001010000101000100,
             0b0001011001000101010110111, 0b0000101101010100110001101],
            25, [1,1,0,1,0,0,1,0])
-    verify(tapin, [97,975,6420], [0,0,0,0], 25, combine_function_out)
-    # verify(tapin, [27,1357,7531], [0,0,0,keystream], 2000, combine_function_out)
 
-    # generator_correlation([1,1,0,1,0,0,1,0])
-    # correlation, reg_comb = generator_correlation(combine_function_out)
+    # This generates the ciphertext for the challenge key.
+    verify(tapin, [97,975,6420], [0,0,0,0], 25, combine_function_out)
+
+    # Identify correlation between LSFRs and f(X)
     correlation = generator_correlation(combine_function_out)
 
+    # With the correlations known, attack the cipher
     attack(keystream, tapin, combine_function_out, correlation)
-    # iterate_all(7, [1,7], 2000)
-    # sequence, popped = LSFR(4, [1,4], 6, 1)
 
 
-# FIXME: Remove x1x2 x1x3 etc.
-# "It also examines correlation between pairs of registers and the combining function, examining the probability"
-# Function to identify any register(s) that correlates with the combining f(X)
+# Returns the correlation between the LSFRs and combining function f(X)
 def generator_correlation(combined_result):
     # Calculate number of registers to iterate through
     register_count = int(math.log(len(combined_result), 2))
     ii = 0
     correlation = [0.0] * (register_count)
-    # correlation.append([])
-    # for num in range(0, int(register_count)):
-    #     correlation[register_count].append([0.0] * (2 ** (int(register_count) - 1)))
 
-    # reg_comb = [[0,1], [0,2], [1,2]]
-    # correlation[register_count] = [permutations] * int(register_count)
 
     # Set starting correlation to equal 110, will shift through later
     # 110 >> 1 = 011; 110 >> 2 = 101; (loops round)
@@ -84,24 +79,16 @@ def generator_correlation(combined_result):
 
         xx = 0
         while xx < register_count:
+
             # Read value of current register in current pass of combination
             # function
-
-            # reg_val = int(('{0:b}'.format(combined_result[jj][1])).zfill(register_count)[xx])
             combine_out = combined_result[jj]
-            # reg_val = int(('{0:b}'.format(jj).zfill(register_count))[xx])
 
             if  combined_result[jj] == (jj / (2 ** (register_count - (xx + 1)))) % 2:
                 correlation[xx] = correlation[xx] + 1
 
             xx = xx + 1
 
-        # yy = 0
-        # while yy < len(correlation[register_count]):
-        #     if combined_result[jj] == 1:
-        #         chosen_reg_vals = [((jj / (2 ** reg_comb[yy][0])) % 2), ((jj / (2 ** reg_comb[yy][1])) % 2)]
-        #         correlation[register_count][yy][(chosen_reg_vals[0] << 1) + chosen_reg_vals[1]] += 1
-        #     yy = yy + 1
 
         jj = jj + 1
 
@@ -115,7 +102,6 @@ def generator_correlation(combined_result):
         jj = 0
 
         while jj < 2:
-            # correlation[ii][jj] = correlation[ii][jj] / (0.5 * len(combined_result))
 
             jj = jj + 1
 
@@ -123,46 +109,6 @@ def generator_correlation(combined_result):
 
         ii = ii + 1
 
-
-    # ii = 0
-    #
-    # while ii < len(correlation[register_count]):
-    #
-    #     jj = 0
-    #
-    #     while jj < len(correlation[register_count][ii]):
-    #
-    #         correlation[register_count][ii][jj] /= 2
-    #
-    #         jj = jj + 1
-    #
-    #     ii = ii + 1
-    # for reg_combination in correlation[register_count]:
-    #     for bit in reg_combination:
-    #         bit = bit / 2
-
-    if 0:
-        # Iterate checks for each LSFR {x1,...,xn}
-        while ii < register_count:
-            jj = 0
-
-            # Iterate through each output bit for f(X)
-            while jj < len(combined_result):
-
-                # If input xn and output f(X) match, increment count
-                # (jj / (2*i)) % 2 returns iith bit of 0bjj
-                if combined_result[jj][1] == (jj / (2 ** ii)) % 2:
-                    correlation[ii][1] = correlation[ii][1] + 1
-
-                jj = jj + 1
-
-            # Change correlation count into probability
-            correlation[ii][1] = correlation[ii][1] / len(combined_result)
-
-            ii = ii + 1
-
-    print correlation
-    # return correlation, reg_comb
     return correlation
 
 
@@ -218,22 +164,8 @@ def LSFR(length, tap, initial, iterations, least_significant_n):
 # of structure [[]{int register bit-length}, [{tap bits}][], [..., [...]], ...]
 def compare_one(stream_in, stream_len, registers, states, reg_to_check):
 
-    # try len(states) == len(registers)
-    # initialise a list of length equal to number of registers
-    # states = [None] * len(registers)
-
     # set each state x1..xn to starting sequence and None popped
     init_state_step = 0
-
-    if 0:
-        while init_state_step < len(states):
-            states[init_state_step] = (0, None)
-            init_state_step = init_state_step + 1
-    # else:
-        # states[0] = (39, None)
-        # states[1] = (365, None)
-        # states[2] = (7413, None)
-    # print states
 
     bit_index = 0
     stream_string = "{0:b}".format(stream_in).zfill(stream_len)
@@ -262,23 +194,17 @@ def compare_one(stream_in, stream_len, registers, states, reg_to_check):
                                                registers[reg_to_check[0]][1],
                                                states[reg_to_check[0]][0],
                                                1, True)
-                # X = X + (states[reg_to_check[0]][1] << len(states) - (1 + ))
-                # print states
+
                 if states[reg_to_check[0]][1] == int(stream_string[bit_index]):
                     match_count = match_count + 1
 
                 bit_index = bit_index + 1
 
-    # print match_count
     return match_count
 
 # registers contains each register as an array within an array,
 # of structure [[]{int register bit-length}, [{tap bits}][], [..., [...]], ...]
 def compare_all(stream_in, check_len, combinator, registers, states):
-
-    # try len(states) == len(registers)
-    # initialise a list of length equal to number of registers
-    # states = [None] * len(registers)
 
     # set each state x1..xn to starting sequence and None popped
     init_state_step = 0
@@ -289,10 +215,12 @@ def compare_all(stream_in, check_len, combinator, registers, states):
     stream_string = "{0:b}".format(stream_in).zfill(check_len)
     match_count = 0
 
-
+    # Check for required number of bits, 1 bit at a time
     while bit_index < check_len:
         LSFR_index = 0
         X = 0
+
+        # Generate index of X for f(X)
         while LSFR_index < len(states):
             states[LSFR_index] = LSFR(registers[LSFR_index][0],
                                       registers[LSFR_index][1],
@@ -301,6 +229,7 @@ def compare_all(stream_in, check_len, combinator, registers, states):
             X = X + (states[LSFR_index][1] << len(states) - (1 + LSFR_index))
             LSFR_index = LSFR_index + 1
 
+        # Check combined f(X) against cipher stream, incrementing if matching
         if combinator[X] == int(stream_string[bit_index]):
             match_count = match_count + 1
         elif combinator[X] == -1:
@@ -310,9 +239,11 @@ def compare_all(stream_in, check_len, combinator, registers, states):
 
         bit_index = bit_index + 1
 
-    # print match_count
     return match_count
 
+
+# Function to verify some set of inputs against an expected output.
+# Also used to generate outputs for challenge keys.
 def verify(registers, initial, expected_streams, stream_length, combine_fn):
     states = [None] * len(registers)
 
@@ -326,112 +257,70 @@ def verify(registers, initial, expected_streams, stream_length, combine_fn):
     bit_index = 0
     generated_stream = [0] * (len(registers) + 1)
 
-    # Check if verifying found key or subset of stream.
-    if stream_length < 3000:
-
-        # Iterate through each bit of stream
-        while bit_index < stream_length:
-            LSFR_index = 0
-            X = 0
-
-            # Iterate through each LSFR
-            while LSFR_index < len(states):
-
-                # Get next value from LSFT
-                states[LSFR_index] = LSFR(registers[LSFR_index][0],
-                                          registers[LSFR_index][1],
-                                          states[LSFR_index][0],
-                                          1, True)
-                # Set X
-                X = X + (states[LSFR_index][1] << len(states) - (1 + LSFR_index))
-
-                # Set bit in stream
-                generated_stream[LSFR_index] = (generated_stream[LSFR_index] << 1) \
-                                                + states[LSFR_index][1]
-
-                LSFR_index = LSFR_index + 1
-            bit_index = bit_index + 1
+    # Iterate through each bit of stream
+    while bit_index < stream_length:
         LSFR_index = 0
+        X = 0
 
+        # Iterate through each LSFR
         while LSFR_index < len(states):
-            if generated_stream[LSFR_index] == expected_streams[LSFR_index]:
-                print "Streams match. Generated: " + \
-                       "{0:b}".format(generated_stream[LSFR_index]).zfill(stream_length) + \
-                      " Expected: " + "{0:b}".format(expected_streams[LSFR_index]).zfill(stream_length)
-            else:
-                print "Streams differ. Generated: " + \
-                       "{0:b}".format(generated_stream[LSFR_index]).zfill(stream_length) + \
-                      " Expected: " + "{0:b}".format(expected_streams[LSFR_index]).zfill(stream_length)
+
+            # Get next value from LSFT
+            states[LSFR_index] = LSFR(registers[LSFR_index][0],
+                                      registers[LSFR_index][1],
+                                      states[LSFR_index][0],
+                                      1, True)
+            # Set X
+            X = X + (states[LSFR_index][1] << len(states) - (1 + LSFR_index))
+
+            # Set bit in stream
+            generated_stream[LSFR_index] = (generated_stream[LSFR_index] << 1) \
+                                            + states[LSFR_index][1]
 
             LSFR_index = LSFR_index + 1
+        bit_index = bit_index + 1
+    LSFR_index = 0
 
-        bit_index = 0
-        while bit_index < stream_length:
-            current_X = 0
-            LSFR_index = 0
-            while LSFR_index < len(states):
-                current_X = current_X << 1
-                current_X = current_X + int('{0:b}'.format(generated_stream[LSFR_index]).zfill(stream_length)[bit_index])
-                LSFR_index = LSFR_index + 1
 
-            generated_stream[len(states)] = (generated_stream[len(states)] << 1) \
-                                            + combine_fn[current_X]
-            bit_index = bit_index + 1
-
-        if generated_stream[len(states)] == expected_streams[len(states)]:
+    # Output whether or not streams match after comparing values
+    while LSFR_index < len(states):
+        if generated_stream[LSFR_index] == expected_streams[LSFR_index]:
             print "Streams match. Generated: " + \
-                   "{0:b}".format(generated_stream[len(states)]).zfill(stream_length) + \
-                  " Expected: " + "{0:b}".format(expected_streams[len(states)]).zfill(stream_length)
+                   "{0:b}".format(generated_stream[LSFR_index]).zfill(stream_length) + \
+                  " Expected: " + "{0:b}".format(expected_streams[LSFR_index]).zfill(stream_length)
         else:
             print "Streams differ. Generated: " + \
-                   "{0:b}".format(generated_stream[len(states)]) + \
-                  " Expected: " + "{0:b}".format(expected_streams[len(states)]).zfill(stream_length)
+                   "{0:b}".format(generated_stream[LSFR_index]).zfill(stream_length) + \
+                  " Expected: " + "{0:b}".format(expected_streams[LSFR_index]).zfill(stream_length)
+
+        LSFR_index = LSFR_index + 1
+
+    bit_index = 0
+    while bit_index < stream_length:
+        current_X = 0
+        LSFR_index = 0
+        while LSFR_index < len(states):
+            current_X = current_X << 1
+            current_X = current_X + int('{0:b}'.format(generated_stream[LSFR_index]).zfill(stream_length)[bit_index])
+            LSFR_index = LSFR_index + 1
+
+        generated_stream[len(states)] = (generated_stream[len(states)] << 1) \
+                                        + combine_fn[current_X]
+        bit_index = bit_index + 1
+
+    if generated_stream[len(states)] == expected_streams[len(states)]:
+        print "Streams match. Generated: " + \
+               "{0:b}".format(generated_stream[len(states)]).zfill(stream_length) + \
+              " Expected: " + "{0:b}".format(expected_streams[len(states)]).zfill(stream_length)
     else:
-        return 1
-        # bit_index = 0
-        # while bit_index < stream_length:
-        #     LSFR_index = 0
-        #     X = 0
-        #     while LSFR_index < len(states):
-        #         states[LSFR_index] = LSFR(registers[LSFR_index][0],
-        #                                   registers[LSFR_index][1],
-        #                                   states[LSFR_index][0],
-        #                                   1, True)
-        #         X = X + (states[LSFR_index][1] << len(states) - (1 + LSFR_index))
-        #
-        #         generated_stream[LSFR_index] = (generated_stream[LSFR_index] << 1) \
-        #                                         + combine_fn[X]
-        #
-        #         LSFR_index = LSFR_index + 1
-        #     bit_index = bit_index + 1
-        # # LSFR_index = 0
-        # # while bit_index < stream_length:
-        # #     current_X = 0
-        # #     LSFR_index = 0
-        # #     while LSFR_index < len(states):
-        # #         current_X = current_X << 1
-        # #         current_X = current_X + int('{0:b}'.format(generated_stream[LSFR_index]).zfill(stream_length)[bit_index])
-        # #         LSFR_index = LSFR_index + 1
-        # #
-        # #     generated_stream[len(states)] = (generated_stream[len(states)] << 1) \
-        # #                                     + combine_fn[current_X]
-        # #     bit_index = bit_index + 1
-        #
-        # if generated_stream[len(states)] == expected_streams:
-        #     print "Streams match. Generated: " + \
-        #            "{0:b}".format(generated_stream[len(states)]).zfill(stream_length) + \
-        #           " Expected: " + "{0:b}".format(expected_streams).zfill(stream_length)
-        # else:
-        #     print "Streams differ. Generated: " + \
-        #            "{0:b}".format(generated_stream[len(states)]).zfill(stream_length) + \
-        #           " Expected: " + "{0:b}".format(expected_streams).zfill(stream_length)
+        print "Streams differ. Generated: " + \
+               "{0:b}".format(generated_stream[len(states)]) + \
+              " Expected: " + "{0:b}".format(expected_streams[len(states)]).zfill(stream_length)
 
 
 
-
-
+# Attacks a stream cipher to find initial register values
 def attack(stream, tapin, combining, correlation):
-    brute = True
 
     register_count = int(math.log(len(combining), 2))
     vulnerable = correlation
@@ -478,226 +367,101 @@ def attack(stream, tapin, combining, correlation):
         else:
             ii = ii + 1
 
-    print checked
+    # Extract from correlation[ii]
+    corr = 0.75
+    ii = 0
+    states = []
+    to_break = []
+    while ii < (register_count - 1):
+        if found_keys[ii] != None:
+            states.append([found_keys[ii], None])
+        else:
+            to_break.append(ii)
+            # Skip 0 state due to bug
+            states.append([1, None])
+        ii = ii + 1
 
-    if 1:
-        # Extract from correlation[ii]
-        corr = 0.75
-        ii = 0
-        states = []
-        to_break = []
-        while ii < (register_count - 1):
-            if found_keys[ii] != None:
-                states.append([found_keys[ii], None])
-                print states
+    kk = 0
+
+    max_key = [2 ** 12]
+    found = False
+
+    best_found = [0,0]
+    worst_found = [0,0]
+
+    # Compare combined x1x2 until 75% correlation with stream
+    while found != True:
+
+        match_count = compare_all(stream, default_stream_len, x1x2, tapin, states[:])
+
+        # Check if stream matches sufficiently and update best_found
+        # if better than previous closest match
+        if ((0.98 * corr) * default_stream_len) < match_count:
+            if match_count > best_found[1]:
+                best_found = [states[to_break[0]][0], match_count]
+            if states[to_break[0]][0] < max_key[0]:
+                states[to_break[0]][0] = states[to_break[0]][0] + 1
             else:
-                to_break.append(ii)
-                # Skip 0 state due to bug
-                states.append([1, None])
-            ii = ii + 1
+                found = True
+        else:
 
-        kk = 0
-
-        max_key = [2 ** 12]
-        found = False
-
-        print states
-
-        best_found = [0,0]
-        worst_found = [0,0]
-
-        # Compare combined x1x2 until 75% correlation with stream
-        while found != True:
-
-            match_count = compare_all(stream, default_stream_len, x1x2, tapin, states[:])
-
-
-            # if match_count < ((0.95 * corr) * default_stream_len):
-            #     if states[to_break[0]][0] < max_key[0]:
-            #         states[to_break[0]][0] = states[to_break[0]][0] + 1
-            #     else:
-            #         print "NOPE"
-            #         found = True
-            # else:
-            #     if match_count > best_found[1]:
-            #         best_found = [states[to_break[0]][0], match_count]
-            #
-            #     if states[to_break[0]][0] < max_key[0]:
-            #         states[to_break[0]][0] = states[to_break[0]][0] + 1
-            #     else:
-            #         found = True
-
-            # Check if stream matches sufficiently and update best_found
-            # if better than previous closest match
-            if ((0.98 * corr) * default_stream_len) < match_count:
-                if match_count > best_found[1]:
-                    best_found = [states[to_break[0]][0], match_count]
-                if states[to_break[0]][0] < max_key[0]:
-                    states[to_break[0]][0] = states[to_break[0]][0] + 1
-                else:
-                    found = True
+            if states[to_break[0]][0] < max_key[0]:
+                states[to_break[0]][0] = states[to_break[0]][0] + 1
             else:
-                # if match_count > worst_found[1]:
-                #     worst_found = [states[to_break[0]][0], match_count]
+                found = True
 
-                if states[to_break[0]][0] < max_key[0]:
-                    states[to_break[0]][0] = states[to_break[0]][0] + 1
-                else:
-                    found = True
-                # found = True
-                # found_keys[to_break[0]] = states[to_break[0]][0]
-                # print "found"
-                # print states
 
-        # print found_keys
-        # print best_found
-        # print worst_found
+    print "LSFR" + str(to_break[0] + 1) + ", init val: " + str(best_found[0]) \
+           + " returned " + str(best_found[1]) + " matches"
 
-        # Note new key.
-        found_keys[1] = best_found[0]
-    else:
-        found_keys[1] = 1357
+    # Note new key.
+    found_keys[1] = best_found[0]
 
-    if brute:
-        ii = 0
-        to_break = []
-        states = []
-        while ii < register_count:
-            if found_keys[ii] != None:
-                states.append([found_keys[ii], None])
-                print states
+    ii = 0
+    to_break = []
+    states = []
+    while ii < register_count:
+        if found_keys[ii] != None:
+            states.append([found_keys[ii], None])
+        else:
+            to_break.append(ii)
+            states.append([0, None])
+        ii = ii + 1
+
+    max_key = [2 ** 12, 2 ** 14]
+    found = False
+    check_len = default_stream_len
+    max_count = 0
+
+    # Search through states of final register
+    while found != True:
+
+        match_count = compare_all(stream, check_len, combined, tapin, states[:])
+        max_count = max(match_count, max_count)
+
+        # Check for exact match, incrementing through each initial value
+        # of final register
+        if match_count < check_len:
+            if states[to_break[0]][0] < max_key[1]:
+                states[to_break[0]][0] = states[to_break[0]][0] + 1
             else:
-                to_break.append(ii)
-                states.append([0, None])
-            ii = ii + 1
+                states[to_break[0]][0] = 0
+                print "Unfindable"
+                break
 
-        max_key = [2 ** 12, 2 ** 14]
-        found = False
-        check_len = default_stream_len
-        max_count = 0
-        print states
-
-        # Search through states of final register
-        while found != True:
-            # print states
-            match_count = compare_all(stream, check_len, combined, tapin, states[:])
-            # print match_count
-            max_count = max(match_count, max_count)
-
-            # Check for exact match, incrementing through each initial value
-            # of final register
-            if match_count < check_len:
-                # check_len = 25
-                if states[to_break[0]][0] < max_key[1]:
-                    states[to_break[0]][0] = states[to_break[0]][0] + 1
-                    # print "inc [0]"
-                else:
-                    states[to_break[0]][0] = 0
-                    # if states[to_break[1]][0] < max_key[1]:
-                    #     # print "inc [1]"
-                    #     states[to_break[1]][0] = states[to_break[1]][0] + 1
-                        # print max_count
-                        # print states
-                        # break
-                        # max_count = 0
-                    # else:
-                    print "Unfindable"
-                    break
-
-            # Exact match found
-            else:
-                if check_len == default_stream_len:
-                    found = True
-                    print "Found!"
-                    # print states
-                else:
-                    check_len = max((check_len * 2), default_stream_len)
-                    print "Promising…"
-                    # print states
-        # print max_count
-
-        # Print final values
-        print "LSFR1 init: " + str(states[0][0]) +\
-            "\nLSFR2 init: " + str(states[1][0]) +\
-            "\nLSFR3 init: " + str(states[2][0])
+        # Exact match found
+        else:
+            if check_len == default_stream_len:
+                found = True
+                print "Found!"
 
 
-
-    else:
-        # If not all keys found, attack register combinations
-        if len(checked) != register_count:
-
-            # Confirm working with array of combined correlations
-            if ii == register_count:
-                exploitable_combs = []
-                for fields in range(0, len(correlation[ii])):
-                    exploitable_combs.append([])
-                jj = 0
-
-                # Iterate through each combination
-                while jj < len(correlation[ii]):
-
-                    kk = 0
-
-                    # Iterate through each probability to check which are exploitable
-                    # (if any)
-                    while kk < len(correlation[ii][jj]):
-                        if correlation[ii][jj][kk] != 0.5:
-                            exploitable_combs[jj].append(kk)
-                        kk = kk + 1
-
-                    jj = jj + 1
-
-                jj = 0
-
-                i
-                while jj < len(exploitable_combs):
-                    if exploitable_combs[jj] == []:
-                        break
-                    else:
-                        kk = 0
-
-                        while kk < len(exploitable_combs[jj]):
-                            if checked.count(exploitable_combs[jj][kk]) > 0:
-                                break
-                            else:
-                                break
+    # Print final values
+    print "LSFR1 init: " + str(states[0][0]) +\
+        "\nLSFR2 init: " + str(states[1][0]) +\
+        "\nLSFR3 init: " + str(states[2][0])
 
 
-
-                    jj = jj + 1
-
-
-        print exploitable_combs
-
-
-
-
-    print found_keys
-
-
-
-def iterate_all(bits, tapin, iterations):
-
-    bitsin = 1
-
-    while bitsin < (2^bits):
-
-        LSFR(bits, tapin, bitsin, iterations)
-
-        bitsin += 1
-
-
-
-
-    #1 = 129 = 0b1000001
-
-
-# def LSFR2():
-#     # 1025 = 0b01000000001
-#
-# def LSFR3():
-    # 11265 = 0b1011000000001
 
 if __name__ == "__main__":
     main()

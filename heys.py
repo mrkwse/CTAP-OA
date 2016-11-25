@@ -15,18 +15,13 @@ s_box = [0x4, 0x0, 0xC, 0x3,
 # input [0, 1, 2,  3, 4, 5, 6,  7, 8, 9, 10, 11,12,13, 14, 15]
 p_box = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]
 
+# Run with python heys.py
 def main(argv=None):
 
-    if argv == None:
-        argv = sys.argv
 
-    try:
-        with open(argv[1], 'r') as textStream:
-            block_in = textStream.read()
-
-    except Exception as e:
-        raise
-
+    # Substitution tests, comparing input to expected output
+    # s_box is the above s_box configuration
+    # the array is [<input val>, <output val>]
     print "\n*** SUBSTITUTION TESTS ***"
     substitution_test(s_box, [291, 16579])
     substitution_test(s_box, [17767, 35753])
@@ -34,6 +29,9 @@ def main(argv=None):
     substitution_test(s_box, [30001, 39728])
     substitution_test(s_box, [23130, 45746])
 
+    # Permutation tests, comparing generated output to expected output
+    # p_box is the above p_box configuration
+    # the array is [<input val>, <output val>]
     print "\n*** PERMUTATION TESTS ***"
     permutation_test(p_box, [61440, 34952])
     permutation_test(p_box, [3840, 17476])
@@ -41,16 +39,23 @@ def main(argv=None):
     permutation_test(p_box, [15, 4369])
     permutation_test(p_box, [23130, 23130])
 
+    # Four round test, comparing generated output to expected output.
+    # First array is subkeys for 4 round cipher
+    # Integer value is input plaintext
+    # s_box is above s_box config, p_box is above p_box configuration
+    # Integer 4 is number of rounds in cipher
+    # Final integer is expected ciphertext
     print "\n*** FOUR ROUND TEST ***"
     four_round([4132, 8165, 14287, 54321, 53124], 12033, s_box, p_box, 4, 20025)
     four_round([4132, 8165, 14287, 54321, 53124], 62153, s_box, p_box, 4, 7495)
 
+    # Generate output for challenge vector input using same sequence of inputs
+    # as before.
+    # Will 'compare' against final integer, but not relevant
     print "\n*** CHALLENGE VECTOR ***"
     four_round([4132, 8165, 14287, 54321, 53124], 13571, s_box, p_box, 4, 0)
     # returns 45858
 
-    differential_cryptanalysis(s_box, p_box)
-# def hadamard(s_box, p_box, input)
 
 
 def substitution_test(s_in, example_in):
